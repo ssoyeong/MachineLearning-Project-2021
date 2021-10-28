@@ -1,10 +1,9 @@
-from infoRetrieval import *
-from utils import createOutput
+from LAB3_SearchEngine.infoRetrieval import *
 import pandas as pd
 
 def run():
   print("Process Query")
-  qDocs = parseQuery("Cranfield_Collection/cran.qry")
+  qDocs = parseQuery("LAB3_SearchEngine/Cranfield_Collection/cran.qry")
   qToks = tokenize(qDocs, "query")
   qDic = organize(qToks, "query")
   # qIdf = idf(qDic, len(qDocs))
@@ -12,7 +11,7 @@ def run():
 
 
   print("Process Abstract Docs")
-  absDocs = parseAbsDocs("Cranfield_Collection/cran.all.1400")
+  absDocs = parseAbsDocs("LAB3_SearchEngine/Cranfield_Collection/cran.all.1400")
   absToks = tokenize(absDocs, "abstract")
   absDic = organize(absToks, "abstract")
   # absIdf = idf(absDic, len(absDocs))
