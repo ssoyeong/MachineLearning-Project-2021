@@ -168,7 +168,7 @@ def cosSim(vect1, vect2):
     divide = 0
   return divide
 
-def score(queries, absTf, absIdf, qTf, qIdf):
+def make_score_list(queries, absTf, absIdf, qTf, qIdf):
   scores = []
   countQ = 0
   for query in queries:
