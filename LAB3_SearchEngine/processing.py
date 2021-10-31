@@ -1,6 +1,6 @@
 import nltk
 import string
-from nltk.corpus import stopwords
+import stopwords
 import math
 from query import Query
 
@@ -73,7 +73,7 @@ def tokenize(docs, docType="query"):
       sentences = nltk.sent_tokenize(abstract)
       toks = []
       for sentence in sentences:
-        stopset = [word for word in stopwords.words('english')]
+        stopset = [word for word in stopwords.stop_list]
         stop_punc = list(string.punctuation)
         stops = stopset+stop_punc
         tokens = nltk.wordpunct_tokenize(sentence)

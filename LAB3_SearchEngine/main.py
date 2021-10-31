@@ -61,7 +61,7 @@ def processing():
 
   # Make Output
   print("===Saving the Result===")
-  createOutput("LAB3_SearchEngine/output.txt", scoreList)
+  createOutput("LAB3_SearchEngine/dataset/output.txt", scoreList)
   print("Saving File Complete!")
 
 if __name__ == "__main__":

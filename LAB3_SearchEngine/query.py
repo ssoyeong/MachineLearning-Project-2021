@@ -1,6 +1,6 @@
 import nltk
 import string
-from nltk.corpus import stopwords
+import stopwords
 
 class Query:
   def __init__(self,ID,query):
@@ -11,7 +11,7 @@ class Query:
     return(self.ID, self.query)
 
   def tokenize(self):
-    stopset = [word for word in stopwords.words('english')]
+    stopset = [word for word in stopwords.stop_list]
     stop_punc = list(string.punctuation)
     stops = stopset+stop_punc
     tokens = nltk.wordpunct_tokenize(self.query)

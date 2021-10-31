@@ -158,5 +158,5 @@ def start_evaluate():
 	print("==Evaluation==")
 	dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/') + '/'
 	key_file = dir + "./dataset/cranqrel.txt"
-	response_file = dir + "output.txt"
+	response_file = dir + "./dataset/output.txt"
 	evaluation(key_file,response_file)
