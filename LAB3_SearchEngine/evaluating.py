@@ -105,4 +105,4 @@ def start_evaluate(e_list, k_list):
 				maxE = e
 
 	print("==Best Parameter==")
-	print(f"Precision: {maxPrecision} K: {maxK} E: {maxE}")
+	print(f"Best Precision: {maxPrecision} Best K: {maxK} Best E: {maxE}")
