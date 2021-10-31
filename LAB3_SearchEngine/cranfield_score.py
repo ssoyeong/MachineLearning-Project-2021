@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # scorer for NLP class Spring 2016
 # ver.1.0
 #
@@ -12,7 +10,7 @@ import re
 import os
 import random
 
-def score (keyFileName, responseFileName,total_queries=225,total_documents=1400,trace=False):
+def score (keyFileName, responseFileName,total_queries=225,total_documents=1400):
 	## assumes that Cranfield Corpus is the default
 	keyFile = open(keyFileName, 'r')
 	key = keyFile.readlines()
@@ -40,6 +38,9 @@ def score (keyFileName, responseFileName,total_queries=225,total_documents=1400,
 					key_dict[query].append(abstract)
 			else:
 				key_dict[query] = [abstract]
+
+	#print ('key dictionary for first query:', key_dict[1])
+
 	for line in response:
 		line = line.rstrip(os.linesep)
 		line = line.rstrip(' ')
@@ -57,8 +58,11 @@ def score (keyFileName, responseFileName,total_queries=225,total_documents=1400,
 				## these are listed in order, based on score
 		else:
 			response_dict[query] = [abstract]
-	for query_id in key_dict: 
-		## for query_id in range(1,total_queries):
+
+	#print ('response dictionary for first query is:', response_dict[1])
+	#print ('length is', len(response_dict[1]))
+
+	for query_id in range(1,total_queries):
 		if (query_id in key_dict):
 			total_answers =	len(key_dict[query_id])
 		else:
@@ -86,17 +90,15 @@ def score (keyFileName, responseFileName,total_queries=225,total_documents=1400,
 				average_precision = (sum(precisions))/len(precisions)
 			else:
 				missing_responses.append(query_id)
-			if trace:
-				print(query_id,average_precision)
 			all_precisions.append(average_precision)
 			all_recalls.append(recordable_recall)
 		elif query_id in key_dict:
 			all_recalls.append(0)
-	print 'Queries with No responses:'+str(missing_responses)
+	print ('Queries with No responses:'+str(missing_responses))
 	MAP = sum(all_precisions)/len(all_precisions)
 	Recall = sum(all_recalls)/len(all_recalls)
-	print 'Average MAP is: '+str(MAP)
-	print 'Average Recall is: '+str(Recall)
+	print ('Average MAP is: '+str(MAP))
+	print ('Average Recall is: '+str(Recall))
 
 def get_triple_from_line(line):
 	line = line.rstrip(os.linesep)
@@ -152,12 +154,11 @@ def make_random_response(infile,outfile,total_responses=1400):
 								abstracts.append(number)
 			print_remaining_triples(last_query,abstracts,outstream,total_responses)
 
-def main(args):
-	key_file = args[1]
-	response_file = args[2]
-	if (len(args)>3) and (args[3].lower() in ['true','t']):
-		score(key_file,response_file,trace=True)
-	else:
-		score(key_file,response_file)
+def main():
+	dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/') + '/'
+	key_file = dir + "./dataset/cranqrel.txt"
+	response_file = dir + "output.txt"
+	score(key_file,response_file)
 
-if __name__ == '__main__': sys.exit(main(sys.argv))
+if __name__ == '__main__': 
+	main()
