@@ -36,7 +36,7 @@ def constructInvertedIndex(absDic):
 def run():
   # Docmument preprocessing
   print("==Process Abstract Docs==")
-  absDocs = parseAbsDocs("LAB3_SearchEngine/Cranfield_Collection/cran.all.1400.txt")
+  absDocs = parseAbsDocs("LAB3_SearchEngine/dataset/cran.all.1400.txt")
   absToks = tokenize(absDocs, "abstract")
   absDic = organize(absToks, "abstract")
   absIdf = idf(absDic, len(absDocs))
@@ -48,7 +48,7 @@ def run():
 
   # Query preprocessing
   print("==Process Query==")
-  qDocs = parseQuery("LAB3_SearchEngine/Cranfield_Collection/cran.qry.txt")
+  qDocs = parseQuery("LAB3_SearchEngine/dataset/cran.qry.txt")
   qToks = tokenize(qDocs, "query")
   qDic = organize(qToks, "query")
   qIdf = idf(qDic, len(qDocs))
