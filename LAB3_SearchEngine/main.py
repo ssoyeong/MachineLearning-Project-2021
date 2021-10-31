@@ -65,5 +65,7 @@ def processing():
   print("Saving File Complete!")
 
 if __name__ == "__main__":
-  processing()
-  start_evaluate()
+  #processing()
+  e = [0.3, 0.4, 0.5, 0.6, 0.7]
+  k = [3, 5, 10, 30, 50, 100]
+  start_evaluate(e, k)
