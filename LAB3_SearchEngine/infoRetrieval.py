@@ -1,7 +1,6 @@
 import nltk
 import string
 from nltk.corpus import stopwords
-from math import exp, expm1
 import math
 from query import Query
 

@@ -1,6 +1,16 @@
 from infoRetrieval import *
 import pandas as pd
 
+def createOutput(fileName, scores):
+  with open(fileName, "w") as f:
+    for score in scores:
+      for tup in score:
+        string = ""
+        for t in tup:
+          string = string + str(t) + " "
+        f.write(string + "\n")
+    f.close()
+
 def constructInvertedIndex(absDic):
   # Construct Inverted Index
   termList = list(absDic.keys())
@@ -47,22 +57,11 @@ def run():
   # Evaluation
   print("===Process Scoring===" )
   scoreList = score(qToks, absTf, absIdf, qTf, qIdf)
-  #print(scoreList)
 
   # Output
   print("===Saving the Result===")
-  createOutput("output.txt", scoreList)
+  createOutput("LAB3_SearchEngine/output.txt", scoreList)
   print("All done!")
-
-def createOutput(fileName, scores):
-  with open(fileName, "w") as f:
-    for score in scores:
-      for tup in score:
-        string = ""
-        for t in tup:
-          string = string + str(t) + " "
-        f.write(string + "\n")
-    f.close()
 
 if __name__ == "__main__":
   run()

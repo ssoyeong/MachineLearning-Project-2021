@@ -1,8 +1,6 @@
 import nltk
 import string
 from nltk.corpus import stopwords
-from math import exp, expm1
-import math
 
 class Query:
   def __init__(self,ID,query):
