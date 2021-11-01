@@ -1,5 +1,6 @@
 from processing import *
 from evaluating import *
+from searching import *
 import pandas as pd
 
 def createOutput(fileName, scores):
@@ -31,13 +32,14 @@ def constructInvertedIndex(absDic):
 
   invertedIndexDF = invertedIndexDF[127:].reset_index()
   invertedIndexDF = invertedIndexDF.drop(['index'], axis=1)
-  print(invertedIndexDF.head(30))
+  # print(invertedIndexDF.head(30))
+  invertedIndexDF.to_csv("dataset/invertedIndex.csv")
   return invertedIndexDF
 
 def processing():
   # Docmument preprocessing
   print("==Process Abstract Docs==")
-  absDocs = parseAbsDocs("LAB3_SearchEngine/dataset/cran.all.1400.txt")
+  absDocs = parseAbsDocs("dataset/cran.all.1400.txt")
   absToks = tokenize(absDocs, "abstract")
   absDic = organize(absToks, "abstract")
   absIdf = idf(absDic, len(absDocs))
@@ -49,7 +51,7 @@ def processing():
 
   # Query preprocessing
   print("==Process Query==")
-  qDocs = parseQuery("LAB3_SearchEngine/dataset/cran.qry.txt")
+  qDocs = parseQuery("dataset/cran.qry.txt")
   qToks = tokenize(qDocs, "query")
   qDic = organize(qToks, "query")
   qIdf = idf(qDic, len(qDocs))
@@ -61,11 +63,22 @@ def processing():
 
   # Make Output
   print("===Saving the Result===")
-  createOutput("LAB3_SearchEngine/dataset/output.txt", scoreList)
+  createOutput("dataset/output.txt", scoreList)
   print("Saving File Complete!")
 
 if __name__ == "__main__":
-  #processing()
+  # processing()
+
+  ##### Query-based Search Engine #####
   e = [0.3, 0.4, 0.5, 0.6, 0.7]
   k = [3, 5, 10, 30, 50, 100]
-  start_evaluate(e, k)
+  # start_evaluate(e, k)
+
+  ##### Word-based Search Engine #####
+  input = ['affected', 'afterbody']
+  # Search for documents that match the input words
+  output = start_search_word(input)
+  if len(output) == 0:
+    output = 'No matching results.'
+  print("Search word:", input)
+  print("Matching document:", output)
