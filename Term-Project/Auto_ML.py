@@ -64,7 +64,8 @@ def dataExploration(df):
 def findMissingValue(df):
     # check missing value
     # only 'Arrival Delay in Minutes' has missing values
-    df.dropna(inplace=True)
+    #df.dropna(inplace=True)
+    df.fillna(df.mean(), inplace = True)
     return df
 
 def encoding(df):
