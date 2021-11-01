@@ -9,15 +9,16 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import RobustScaler
 from sklearn.preprocessing import MaxAbsScaler
-# Encoder
-from sklearn.preprocessing import LabelEncoder
+# Classfication
+from sklearn import tree
+from sklearn.linear_model import LogisticRegression
+from sklearn import svm
 # Cluster
 from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
 from sklearn.cluster import MeanShift
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import estimate_bandwidth
-# from pyclustering.cluster.clarans import clarans;
 # Cluster Evaluation
 from sklearn import metrics
 from sklearn.metrics import silhouette_score
@@ -30,6 +31,8 @@ from sklearn.neighbors import NearestNeighbors
 import warnings
 import os
 warnings.filterwarnings(action='ignore')
+
+purpose = 0 # global variable
 
 # Preprocessing
 def findMissingValue(df):
@@ -49,42 +52,83 @@ def encoding(df):
  
     return df
 
-# function for set hyper parameters and run find_best
-def setCombination():
+# function for set hyper parameters
+def setCombination(scaler_list, cf_list = [], cl_list = []):
     # Scaler List
-    standard = StandardScaler()
-    minMax = MinMaxScaler()
-    robust = RobustScaler()
-    maxAbs = MaxAbsScaler()
-    scalers = {"standard scaler": standard, "minMax scaler": minMax, "robust scaler": robust, "maxAbs scaler": maxAbs}
+    standard = StandardScaler() #1
+    minMax = MinMaxScaler() #2
+    robust = RobustScaler() #3
+    maxAbs = MaxAbsScaler() #4
 
-    # Encoder List
-    label = LabelEncoder()
-    encoders = {"label encoder": label}
+    scalers = {}
+    cf_models = {}
+    cl_models = {}
+    cf_params = {}
+    cl_params = {}
 
-    # Model List
-    kmeans = KMeans()
-    gmm = GaussianMixture()
+    for i in scaler_list:
+        if (i == 1):
+            scalers["standard scaler"] = standard
+        elif (i == 2):
+            scalers["minMax scaler"] = minMax
+        elif (i == 3):
+            scalers["robust scaler"] = robust
+        elif (i == 4):
+            scalers["maxAbs scaler"] = maxAbs
 
-    dbscan = DBSCAN()
-    meanshift = MeanShift()
+    # Classification Model List
+    decisionTree_entropy = tree.DecisionTreeClassifier(criterion="entropy")
+    decisionTree_gini = tree.DecisionTreeClassifier(criterion="gini")
+    logistic = LogisticRegression()
+    svm_model = svm.SVC()
 
-    models = {"kmeans": kmeans,
-              #"clarans": [],
-              "gmm": gmm,
-              "dbscan": dbscan,
-              #"meanshift": meanshift
+    for i in cf_list:
+        if (i == 1):
+            cf_models["decisionTree_entropy"] = decisionTree_entropy
+            cf_params["decisionTree_entropy"] = {"max_depth": [x for x in range(3, 9, 1)],
+                                                "min_samples_split": [x for x in range(2, 10, 1)],
+                                                "min_samples_leaf": [x for x in range(3, 10, 1)]}
+        elif (i == 2):
+            cf_models["decisionTree_gini"] = decisionTree_gini
+            cf_params["decisionTree_gini"] = {"max_depth": [x for x in range(3, 9, 1)],
+                                            "min_samples_split": [x for x in range(2, 10, 1)],
+                                            "min_samples_leaf": [x for x in range(3, 10, 1)]}
+        elif (i == 3):
+            cf_models["logistic"] = logistic
+            cf_params["logistic"] = {"C": [0.001, 0.01, 0.1, 1, 10],
+                                    'penalty': ['l1', 'l2', 'elasticnet', 'none']}
+        elif (i == 4):
+            cf_models["svm_model"] = svm_model
+            cf_params["svm_model"] = {"C": [ 0.1, 1, 10], 
+                                    "kernel": ['linear', 'poly', 'rbf', 'sigmoid'],
+                                    "gamma": [0.01, 0.1, 1]}
 
-    }
+    # Clustering Model List
+    kmeans = KMeans() #1
+    gmm = GaussianMixture() #2
+    dbscan = DBSCAN() #3
+    meanshift = MeanShift() #4
 
-    # Parameters
-    params_dict = {"kmeans": {"n_clusters": [x for x in range(3, 5)]},
-                   "gmm": {"n_components": [x for x in range(3, 5)]},
-                   "dbscan": {"eps": [0.1, 0.5]},
-                   "meanshift": {"bandwidth": [1, 2]}
-                   }
+    for i in cl_list:
+        if (i == 1):
+            cl_models["kmeans"] = kmeans
+            cl_params["kmeans"] = {"n_clusters": [x for x in range(3, 5)]}
+        elif (i == 2):
+            cl_models["gmm"] = gmm
+            cl_params["gmm"] = {"n_components": [x for x in range(3, 5)]}
+        elif (i == 3):
+            cl_models["dbscan"] = dbscan
+            cl_params["dbscan"] = {"eps": [0.1, 0.5]}
+        elif (i == 4):
+            cl_models["meanshift"] = meanshift
+            cl_params["meanshift"] = {"bandwidth": [1, 2]}
 
-    return scalers, encoders, models, params_dict
+    if(purpose == 1): # classificationi
+        return scalers, cf_models, cf_params
+    if(purpose == 2): # clusering
+        return scalers, cl_models, cl_params
+    else: # both
+        return scalers, cf_models, cf_params, cl_models, cl_params
 
 
 def knee_method(X):
@@ -178,7 +222,7 @@ def featureCombination(df, index):
     return feature
 
 # function for store combination that has the best accuracy
-def findBestCombination(df, scalers, encoders, models, params_dict):
+def clustering(df, scalers, models, params_dict):
     best_combination = {}
     best_score = 0
     # Sample Data
@@ -295,15 +339,95 @@ def dataExploration(df):
     plt.show()
     sns.countplot(x='Customer Type',hue="satisfaction",data=df)
     plt.show()
-    sns.histplot(x='Flight Distance',hue="satisfaction",data=train,kde=True,palette="dark")
+    sns.histplot(x='Flight Distance',hue="satisfaction",data=df,kde=True,palette="dark")
     plt.show()
-    sns.countplot(x='Inflight wifi service',hue="satisfaction",data=train,color="red")
+    sns.countplot(x='Inflight wifi service',hue="satisfaction",data=df,color="red")
+    plt.show()
+    sns.countplot(x='Food and drink',hue="satisfaction",data=df,color="orange")
+    plt.show()
+    plt.figure(figsize = (15,15))
+    sns.heatmap(df.corr(), annot = True, cmap = "RdYlGn")
     plt.show()
 
+def selectPurpose():
+    global purpose
+    while(True): # Select Purpose
+        purpose = int(input("Select Purpose [1: Classification, 2: Clustering, 3: All] >> "))
+        if(0 < purpose and purpose < 4):
+            break
+        else:
+            print("Invalid Value!")
+    print(f'purpose: {purpose}')
 
+def selectModel():
+    scaler_list = []
+    cf_model_list = []
+    cl_model_list = []
+
+    while(True): # Select Scalers
+        value = int(input("Select Scalers [1: Standard, 2: MinMax, 3: Robust, 4: MaxAbs, 9: All, 0: Exit] >> "))
+        if(value == 0): # exit
+            if(0 < len(scaler_list)):
+                break
+            else:
+                print("Please choose at least one!")
+        if(value == 9): # all
+            for i in range (1, 5):
+                scaler_list.append(i)
+            break
+        if(0 < value and value < 5):
+            scaler_list.append(value)
+        else:
+            print("Invalid Value!")
+    print(f'Scaler: {scaler_list}')
+
+    if(purpose == 1 or purpose == 3):
+        while(True): # Select Classification model
+            value = int(input("Select Classification model [1: decisionTree_entropy, 2: decisionTree_gini, 3: logistic, 4: svm, 9: All, 0: Exit] >> "))
+            if(value == 0): # exit
+                if(0 < len(cf_model_list)):
+                    break
+                else:
+                    print("Please choose at least one!")
+            if(value == 9): # all
+                for i in range (1, 5):
+                    cf_model_list.append(i)
+                break
+            if(0 < value and value < 5):
+                cf_model_list.append(value)
+            else:
+                print("Invalid Value!")
+        print(f'classification model: {cf_model_list}')
+
+    elif(purpose == 2 or purpose == 3):
+        while(True): # Select Clustering model
+            value = int(input("Select Classification model [1: kmeans, 2: gmm, 3: dbscan, 4: mean-shift, 9: All, 0: Exit] >> "))
+            if(value == 0): # exit
+                if(0 < len(cl_model_list)):
+                    break
+                else:
+                    print("Please choose at least one!")
+            if(value == 9): # all
+                for i in range (1, 5):
+                    cl_model_list.append(i)
+                break
+            if(0 < value and value < 5):
+                cl_model_list.append(value)
+            else:
+                print("Invalid Value!")
+        print(f'clusering model: {cl_model_list}')
+
+    if(purpose == 1):
+        return scaler_list, cf_model_list
+    elif(purpose == 2):
+        return scaler_list, cl_model_list
+    else:
+        return scaler_list, cf_model_list, cl_model_list
+
+    
 
 if __name__ == "__main__":
-    # read data
+    # Read data
     dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/') + '/'
     train = pd.read_csv(dir+"train.csv")
     test = pd.read_csv(dir+"test.csv")
@@ -316,32 +440,43 @@ if __name__ == "__main__":
     train = encoding(train)
     test = encoding(test)
 
-    # data exploration
-    dataExploration(train)
+    # Data exploration
+    #dataExploration(train)
     #dataExploration(test)
 
-    '''
-    # preprocessing
-    train = findMissingValue(train)
+    # Split Target
+    x_train = train.drop(["satisfaction"],axis=1)
+    y_train = train['satisfaction']
+    x_test = test.drop(["satisfaction"],axis=1)
+    y_test = test["satisfaction"]
 
-    # set scalers, models, params, k values
-    scalers, encoders, models, params_dict = setCombination()
+    # Auto ML
+    selectPurpose()
+    if(purpose == 1): # classification
+        selected_scaler, selected_cf = selectModel()
+        scalers, cf_models, cf_params = setCombination(selected_scaler, selected_cf)
+    elif(purpose == 2): # clustering
+        selected_scaler, selected_cl = selectModel()
+        scalers, cl_models, cl_params = setCombination(selected_scaler, selected_cl)
+    else: # Both
+        selected_scaler, selected_cf, selected_cl = selectModel()
+        scalers, cf_models, cf_params, cl_models, cl_params = setCombination(selected_scaler, selected_cf, selected_cl)
 
-    # get best combination dictionary
-    best_result, best_X, best_label = findBestCombination(train, scalers, encoders, models, params_dict)
-    print("\n\n-----------result-----------")
-    print("[Best Results]")
-    best_score = 0
-    for model_name, result_list in best_result.items():
-        print(model_name)
-        for result in result_list:
-            print(result)
-            if (best_score < result['silhouette']):
-                best_score = result['silhouette']
-                best_combi = result
-        print()
+    # # get best combination dictionary
+    # best_result, best_X, best_label = findBestCombination(train, scalers, models, params_dict)
+    # print("\n\n-----------result-----------")
+    # print("[Best Results]")
+    # best_score = 0
+    # for model_name, result_list in best_result.items():
+    #     print(model_name)
+    #     for result in result_list:
+    #         print(result)
+    #         if (best_score < result['silhouette']):
+    #             best_score = result['silhouette']
+    #             best_combi = result
+    #     print()
 
-    print("[Best Combination]")
-    print(best_combi)
-    display_silhouette_plot(best_X, best_label.fit_predict(best_X))
-    '''
+    # print("[Best Combination]")
+    # print(best_combi)
+    # display_silhouette_plot(best_X, best_label.fit_predict(best_X))
+    
