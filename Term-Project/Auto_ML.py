@@ -9,7 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import RobustScaler
 from sklearn.preprocessing import MaxAbsScaler
-# Classfication
+# Classification
 from sklearn import tree
 from sklearn.linear_model import LogisticRegression
 from sklearn import svm
@@ -25,6 +25,7 @@ from sklearn.metrics import silhouette_score
 from sklearn.metrics import silhouette_samples
 from kneed import KneeLocator
 from sklearn.neighbors import NearestNeighbors
+from mpl_toolkits.mplot3d import Axes3D
 # Validation
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import KFold
@@ -134,11 +135,11 @@ def classification(x_train, y_train, x_test, y_test, scalers, models, params_dic
 # -----------------Clustering----------------- #
 def featureCombination(df, index):
     if index == 0:
-        feature = df[['Gender','Age' ,'satisfaction']]
+        feature = df[['Inflight wifi service', 'Inflight entertainment', 'Online boarding']]
     elif index == 1:
-        feature = df[['Flight Distance', 'Departure/Arrival time convenient', 'satisfaction']]
+        feature = df[['Gate location', 'Baggage handling', 'Checkin service']]
     elif index == 2:
-        feature = df[['Seat comfort', 'Inflight entertainment']]
+        feature = df[['Food and drink', 'Ease of Online booking', 'Seat comfort']]
     return feature
 
 # function for store combination that has the best accuracy
@@ -171,7 +172,8 @@ def clustering(df, scalers, models, params_dict):
                 # Grid Search
                 if (model_key == 'meanshift'): # mean-shift
                     grid = GridSearchCV(estimator=model,
-                                        param_grid=estimate_bandwidth(scaled_X),
+                                        # param_grid=estimate_bandwidth(scaled_X),
+                                        param_grid=params_dict[model_key],
                                         scoring=silhouette_scorer,
                                         cv=cv)
                 else: # other models
@@ -179,7 +181,7 @@ def clustering(df, scalers, models, params_dict):
                                         param_grid=params_dict[model_key],
                                         scoring=silhouette_scorer,
                                         cv=cv)
-                    grid.fit(scaled_X)
+                grid.fit(scaled_X)
                 
                 print(f'best_parameters: {grid.best_params_}')
                 score = grid.best_score_
@@ -222,7 +224,99 @@ def clustering(df, scalers, models, params_dict):
 
     return best_combination, best_X, best_label
 
+def clustering_with_best(df, best_scaler, best_model, best_params):
+    # Sample Data
+    for index in range(3):
+        X = featureCombination(df, index)
+        feature = X.columns.tolist()
+        print(f'\n[feature: {feature}]')
+
+        num_cols = X.select_dtypes(include=['int64', 'float64']).columns.to_list()  # numerical value
+
+        if (best_scaler == 'standard scaler'):
+            scaler = StandardScaler()
+        elif (best_scaler == 'minMax scaler'):
+            scaler = MinMaxScaler()
+        elif (best_scaler == 'robust scaler'):
+            scaler = RobustScaler()
+        elif (best_scaler == 'maxAbs scaler'):
+            scaler = MaxAbsScaler()
+
+        scaled_X = scaler.fit_transform(X[num_cols])
+
+        if (best_model == 'kmeans'):
+            kmeans = KMeans(n_clusters=best_params['n_clusters'],
+                            n_init=best_params['n_init'],
+                            algorithm=best_params['algorithm'])
+            kmeans.fit(scaled_X)
+            labels = kmeans.labels_
+
+        elif (best_model == 'gmm'):
+            gmm = GaussianMixture(n_components=best_params['n_components'],
+                                  covariance_type=best_params['covariance_type'],
+                                  init_params=best_params['init_params'])
+            labels = gmm.fit_predict(scaled_X)
+
+        elif (best_model == 'dbscan'):
+            dbscan = DBSCAN(eps=best_params['eps'],
+                            min_samples=best_params['min_samples'])
+            dbscan.fit(scaled_X)
+            labels = dbscan.labels_
+        elif (best_model == 'meanshift'):
+            meanshift = MeanShift(bandwidth=best_params['bandwidth'],
+                                  cluster_all=best_params['cluster_all'])
+            meanshift.fit(scaled_X)
+            labels = meanshift.labels_
+
+        display_scatter_plot(best_model, scaled_X, labels, df.loc[:]['Customer Type'], feature)
+
 # -----------------Clustering Evaluation----------------- #
+def clustering_result_analysis(train, best_combi):
+    best_scaler = best_combi.get('scaler')
+    best_model = best_combi.get('model')
+    best_param = best_combi.get('param')
+
+    clustering_with_best(train, best_scaler, best_model, best_param)
+
+def display_scatter_plot(model_key, x, labels, type, feature):
+
+    df = pd.DataFrame(x, columns=feature)
+    df.insert(0, "Cluster", labels, True)
+    df.insert(1, "Customer Type", type, True)
+    customerType = type.to_numpy()
+    # print(df.head(30))
+
+    sns.countplot(labels)
+    plt.title("The number of data for each cluster")
+    plt.show()
+
+    sns.countplot(customerType)
+    plt.title("The number of data for each customer type")
+    plt.show()
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_title('Service-based Clustering ({})'.format(model_key))
+    ax.set_xlabel(df.columns[2], fontsize=10)
+    ax.set_ylabel(df.columns[3], fontsize=10)
+    ax.set_zlabel(df.columns[4], fontsize=10)
+    x = df.iloc[:, 2]
+    y = df.iloc[:, 3]
+    z = df.iloc[:, 4]
+    ax.scatter(x, y, z, c=labels, s=20, alpha=0.5, cmap='rainbow')
+
+    fig = plt.figure(figsize=(10, 10))
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_title('Customer type Classification ({})'.format(model_key))
+    ax.set_xlabel(df.columns[2], fontsize=10)
+    ax.set_ylabel(df.columns[3], fontsize=10)
+    ax.set_zlabel(df.columns[4], fontsize=10)
+    x = df.iloc[:, 2]
+    y = df.iloc[:, 3]
+    z = df.iloc[:, 4]
+    ax.scatter(x, y, z, c=customerType, s=20, alpha=0.5, cmap='cool')
+    plt.show()
+
 def purity_scorer(target, y_pred):
     contingency_matrix = metrics.cluster.contingency_matrix(target, y_pred)
     score = np.sum(np.amax(contingency_matrix, axis=0)) / np.sum(contingency_matrix)
@@ -419,25 +513,30 @@ def setCombination(scaler_list, cf_list = [], cl_list = []):
     for i in cl_list:
         if (i == 1):
             cl_models["kmeans"] = kmeans
-            cl_params["kmeans"] = {"n_clusters": [x for x in range(3, 5)]}
+            cl_params["kmeans"] = {"n_clusters": [x for x in range(3, 5)],
+                                   "n_init": [10, 20, 30, 40],
+                                   "algorithm": ['auto', 'full', 'elkan']}
         elif (i == 2):
             cl_models["gmm"] = gmm
-            cl_params["gmm"] = {"n_components": [x for x in range(3, 5)]}
+            cl_params["gmm"] = {"n_components": [x for x in range(3, 5)],
+                                "covariance_type": ['full', 'tied', 'diag', 'spherical'],
+                                "init_params": ['kmeans', 'random']}
         elif (i == 3):
             cl_models["dbscan"] = dbscan
-            cl_params["dbscan"] = {"eps": [0.1, 0.5]}
+            cl_params["dbscan"] = {"eps": [0.05, 0.1, 0.5],
+                                   "min_samples": [100, 500, 2000]}
         elif (i == 4):
             cl_models["meanshift"] = meanshift
-            cl_params["meanshift"] = {"bandwidth": [1, 2]}
-
+            cl_params["meanshift"] = {"bandwidth": [1, 2, 5],
+                                      "cluster_all": [True, False]}
     
     return scalers, cf_models, cf_params, cl_models, cl_params
 
 if __name__ == "__main__":
     # Read data
     dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/') + '/'
-    train = pd.read_csv(dir+"train.csv")
-    test = pd.read_csv(dir+"test.csv")
+    train = pd.read_csv(dir+"train2.csv")
+    test = pd.read_csv(dir+"test2.csv")
 
     # Handle Missing value
     train = findMissingValue(train)
@@ -490,5 +589,5 @@ if __name__ == "__main__":
         print("[Best Combination]")
         print(best_combi)
         #display_silhouette_plot(best_X, best_label.fit_predict(best_X))
+        clustering_result_analysis(train, best_combi)
     print('\nDone!')
-    
