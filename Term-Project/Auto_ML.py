@@ -12,7 +12,9 @@ from sklearn.preprocessing import MaxAbsScaler
 # Classification
 from sklearn import tree
 from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn import svm
+from sklearn.ensemble import RandomForestClassifier
 # Cluster
 from sklearn.cluster import KMeans
 from sklearn.cluster import DBSCAN
@@ -417,17 +419,17 @@ def selectModel():
 
     if(purpose == 1 or purpose == 3):
         while(True): # Select Classification model
-            value = int(input("Select Classification model [1: decisionTree_entropy, 2: decisionTree_gini, 3: logistic, 4: svm, 9: All, 0: Exit] >> "))
+            value = int(input("Select Classification model [1: Random Forest, 2: KNN, 3: logistic, 9: All, 0: Exit] >> "))
             if(value == 0): # exit
                 if(0 < len(cf_model_list)):
                     break
                 else:
                     print("Please choose at least one!")
             if(value == 9): # all
-                for i in range (1, 5):
+                for i in range (1, 4):
                     cf_model_list.append(i)
                 break
-            if(0 < value and value < 5):
+            if(0 < value and value < 4):
                 cf_model_list.append(value)
             else:
                 print("Invalid Value!")
@@ -478,31 +480,23 @@ def setCombination(scaler_list, cf_list = [], cl_list = []):
             scalers["maxAbs scaler"] = maxAbs
 
     # Classification Model List
-    decisionTree_entropy = tree.DecisionTreeClassifier(criterion="entropy")
-    decisionTree_gini = tree.DecisionTreeClassifier(criterion="gini")
+    random_forest = RandomForestClassifier()
+    knn = KNeighborsClassifier()
     logistic = LogisticRegression()
-    svm_model = svm.SVC()
 
     for i in cf_list:
         if (i == 1):
-            cf_models["decisionTree_entropy"] = decisionTree_entropy
-            cf_params["decisionTree_entropy"] = {"max_depth": [x for x in range(3, 9, 1)],
-                                                "min_samples_split": [x for x in range(2, 10, 1)],
-                                                "min_samples_leaf": [x for x in range(3, 10, 1)]}
+            cf_models["random_forest"] = random_forest
+            cf_params["random_forest"] = {"n_estimators": [x for x in range(3, 10, 1)],
+                                            "max_depth": [x for x in range(2, 10, 1)]}
         elif (i == 2):
-            cf_models["decisionTree_gini"] = decisionTree_gini
-            cf_params["decisionTree_gini"] = {"max_depth": [x for x in range(3, 9, 1)],
-                                            "min_samples_split": [x for x in range(2, 10, 1)],
-                                            "min_samples_leaf": [x for x in range(3, 10, 1)]}
+            cf_models["KNN"] = knn
+            cf_params["KNN"] = {"n_neighbors": [x for x in range(2, 10, 1)]}
+
         elif (i == 3):
             cf_models["logistic"] = logistic
             cf_params["logistic"] = {"C": [0.001, 0.01],
                                     'penalty': ['l1', 'l2', 'elasticnet', 'none']}
-        elif (i == 4):
-            cf_models["svm_model"] = svm_model
-            cf_params["svm_model"] = {"C": [ 0.1, 1, 10], 
-                                    "kernel": ['linear', 'poly', 'rbf', 'sigmoid'],
-                                    "gamma": [0.01, 0.1, 1]}
 
     # Clustering Model List
     kmeans = KMeans() #1
