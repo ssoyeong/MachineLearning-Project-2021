@@ -93,13 +93,50 @@ def classification(x_train, y_train, x_test, y_test, scalers, models, params_dic
         for model_key, model in models.items():
             print(f'\n[model: {model_key}]')
 
+            new_dict = dict()
+            for param, value_list in params_dict[model_key].items():
+                start = value_list[0]
+                end = value_list[1]
+                step = value_list[2]
+                new_dict[param] = [x for x in np.arange(start, end, step)]
+            
             # grid search
-            grid = GridSearchCV(model, param_grid=params_dict[model_key])
+            grid = GridSearchCV(model, param_grid=new_dict)
             grid.fit(x_train, y_train)
             print(f'parameters: {grid.best_params_}')
             best_model = grid.best_estimator_
             predicted = best_model.predict(x_test)
             accuracy = accuracy_score(y_test, predicted)
+
+            # parameter tuning
+            best_score = 0
+            e = 0.1
+            before = 0
+            initial= 0
+            step = 1
+            end = 10
+            for param in range(initial, end):
+                if(accuracy < 100):
+                    continue
+                print(f'Parameter: {param}')
+                penalty = 0
+                for value in range(initial, end, step):
+                    print(f'Value: {value}')
+                    model = model(param = value)
+                    model.fit(x_train, y_train)
+                    predicted = model.predict(x_test)
+                    score = accuracy_score(y_test, predicted)
+                    if(best_score < score):
+                        best_score = score
+                    print(f'Score: {score}')
+                    change = score - before
+                    if(change <= e or change < 0): # threshold
+                        penalty += 1
+                    else:
+                        penalty = 0
+                    if(penalty > 2):
+                        break
+                    before = score
 
             # save the 10 highest accuracy and parameters each models
             list_size = 10
@@ -164,23 +201,32 @@ def clustering(df, scalers, models, params_dict):
             scaled_X = scaler.fit_transform(X[num_cols])
             print(f'\n[scaler: {scaler_key}]')
 
-            knee_method(scaled_X)
+            #knee_method(scaled_X)
            
             for model_key, model in models.items():
                 print(f'\n[model: {model_key}]')
-
                 cv = [(slice(None), slice(None))]
+
+                new_dict = dict()
+                for param, value_list in params_dict[model_key].items():
+                    if type(value_list[0]) is int:
+                        start = value_list[0]
+                        end = value_list[1]
+                        step = value_list[2]
+                        new_dict[param] = [x for x in np.arange(start, end, step)]
+                    else:
+                        new_dict[param] = value_list
 
                 # Grid Search
                 if (model_key == 'meanshift'): # mean-shift
                     grid = GridSearchCV(estimator=model,
                                         # param_grid=estimate_bandwidth(scaled_X),
-                                        param_grid=params_dict[model_key],
+                                        param_grid=new_dict,
                                         scoring=silhouette_scorer,
                                         cv=cv)
                 else: # other models
                     grid = GridSearchCV(estimator=model,
-                                        param_grid=params_dict[model_key],
+                                        param_grid=new_dict,
                                         scoring=silhouette_scorer,
                                         cv=cv)
                 grid.fit(scaled_X)
@@ -231,7 +277,7 @@ def clustering_with_best(df, best_scaler, best_model, best_params):
     for index in range(3):
         X = featureCombination(df, index)
         feature = X.columns.tolist()
-        # print(f'\n[feature: {feature}]')
+        print(f'\n[feature: {feature}]')
 
         num_cols = X.select_dtypes(include=['int64', 'float64']).columns.to_list()  # numerical value
 
@@ -270,7 +316,7 @@ def clustering_with_best(df, best_scaler, best_model, best_params):
             meanshift.fit(scaled_X)
             labels = meanshift.labels_
 
-        display_scatter_purity(best_model, scaled_X, labels, df.loc[:]['Customer Type'], feature)
+        display_scatter_plot(best_model, scaled_X, labels, df.loc[:]['Customer Type'], feature)
 
 # -----------------Clustering Evaluation----------------- #
 def clustering_result_analysis(train, best_combi):
@@ -280,7 +326,7 @@ def clustering_result_analysis(train, best_combi):
 
     clustering_with_best(train, best_scaler, best_model, best_param)
 
-def display_scatter_purity(model_key, x, labels, type, feature):
+def display_scatter_plot(model_key, x, labels, type, feature):
 
     df = pd.DataFrame(x, columns=feature)
     df.insert(0, "Cluster", labels, True)
@@ -319,14 +365,9 @@ def display_scatter_purity(model_key, x, labels, type, feature):
     ax.scatter(x, y, z, c=customerType, s=20, alpha=0.5, cmap='cool')
     plt.show()
 
-    # purity score
-    purityScore = purity_scorer(customerType, labels)
-    print("'purity score' :", purityScore)
-
 def purity_scorer(target, y_pred):
     contingency_matrix = metrics.cluster.contingency_matrix(target, y_pred)
     score = np.sum(np.amax(contingency_matrix, axis=0)) / np.sum(contingency_matrix)
-    return score
 
 def silhouette_scorer(estimator, X):
     labels = estimator.fit_predict(X)
@@ -492,16 +533,15 @@ def setCombination(scaler_list, cf_list = [], cl_list = []):
     for i in cf_list:
         if (i == 1):
             cf_models["random_forest"] = random_forest
-            cf_params["random_forest"] = {"n_estimators": [x for x in range(3, 10, 1)],
-                                            "max_depth": [x for x in range(2, 10, 1)]}
+            cf_params["random_forest"] = {"n_estimators": [3, 10, 1],
+                                             "max_depth": [2, 10, 1]}
         elif (i == 2):
             cf_models["KNN"] = knn
-            cf_params["KNN"] = {"n_neighbors": [x for x in range(2, 10, 1)]}
+            cf_params["KNN"] = {"n_neighbors": [2, 10, 1]}
 
         elif (i == 3):
             cf_models["logistic"] = logistic
-            cf_params["logistic"] = {"C": [0.001, 0.01],
-                                    'penalty': ['l1', 'l2', 'elasticnet', 'none']}
+            cf_params["logistic"] = {"C": [1, 5, 1]}
 
     # Clustering Model List
     kmeans = KMeans() #1
@@ -512,21 +552,21 @@ def setCombination(scaler_list, cf_list = [], cl_list = []):
     for i in cl_list:
         if (i == 1):
             cl_models["kmeans"] = kmeans
-            cl_params["kmeans"] = {"n_clusters": [10, 100, 300],
+            cl_params["kmeans"] = {"n_clusters": [3, 5, 1],
                                    "n_init": [10, 20, 30, 40],
                                    "algorithm": ['auto', 'full', 'elkan']}
         elif (i == 2):
             cl_models["gmm"] = gmm
-            cl_params["gmm"] = {"n_components": [x for x in range(3, 5)],
+            cl_params["gmm"] = {"n_components": [3, 5, 1],
                                 "covariance_type": ['full', 'tied', 'diag', 'spherical'],
                                 "init_params": ['kmeans', 'random']}
         elif (i == 3):
             cl_models["dbscan"] = dbscan
-            cl_params["dbscan"] = {"eps": [0.05, 0.1, 0.5],
-                                   "min_samples": [100, 500, 2000]}
+            cl_params["dbscan"] = {"eps": [0.1, 0.9, 0.1],
+                                   "min_samples": [100, 1000, 100]}
         elif (i == 4):
             cl_models["meanshift"] = meanshift
-            cl_params["meanshift"] = {"bandwidth": [1, 2, 5],
+            cl_params["meanshift"] = {"bandwidth": [1, 5, 1],
                                       "cluster_all": [True, False]}
     
     return scalers, cf_models, cf_params, cl_models, cl_params
@@ -534,8 +574,8 @@ def setCombination(scaler_list, cf_list = [], cl_list = []):
 if __name__ == "__main__":
     # Read data
     dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/') + '/'
-    train = pd.read_csv(dir+"train.csv")
-    test = pd.read_csv(dir+"test.csv")
+    train = pd.read_csv(dir+"train2.csv")
+    test = pd.read_csv(dir+"test2.csv")
 
     # Handle Missing value
     train = findMissingValue(train)
