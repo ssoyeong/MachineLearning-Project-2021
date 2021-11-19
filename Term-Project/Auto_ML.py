@@ -164,7 +164,7 @@ def clustering(df, scalers, models, params_dict):
             scaled_X = scaler.fit_transform(X[num_cols])
             print(f'\n[scaler: {scaler_key}]')
 
-            #knee_method(scaled_X)
+            knee_method(scaled_X)
            
             for model_key, model in models.items():
                 print(f'\n[model: {model_key}]')
@@ -231,7 +231,7 @@ def clustering_with_best(df, best_scaler, best_model, best_params):
     for index in range(3):
         X = featureCombination(df, index)
         feature = X.columns.tolist()
-        print(f'\n[feature: {feature}]')
+        # print(f'\n[feature: {feature}]')
 
         num_cols = X.select_dtypes(include=['int64', 'float64']).columns.to_list()  # numerical value
 
@@ -270,7 +270,7 @@ def clustering_with_best(df, best_scaler, best_model, best_params):
             meanshift.fit(scaled_X)
             labels = meanshift.labels_
 
-        display_scatter_plot(best_model, scaled_X, labels, df.loc[:]['Customer Type'], feature)
+        display_scatter_purity(best_model, scaled_X, labels, df.loc[:]['Customer Type'], feature)
 
 # -----------------Clustering Evaluation----------------- #
 def clustering_result_analysis(train, best_combi):
@@ -280,7 +280,7 @@ def clustering_result_analysis(train, best_combi):
 
     clustering_with_best(train, best_scaler, best_model, best_param)
 
-def display_scatter_plot(model_key, x, labels, type, feature):
+def display_scatter_purity(model_key, x, labels, type, feature):
 
     df = pd.DataFrame(x, columns=feature)
     df.insert(0, "Cluster", labels, True)
@@ -319,9 +319,14 @@ def display_scatter_plot(model_key, x, labels, type, feature):
     ax.scatter(x, y, z, c=customerType, s=20, alpha=0.5, cmap='cool')
     plt.show()
 
+    # purity score
+    purityScore = purity_scorer(customerType, labels)
+    print("'purity score' :", purityScore)
+
 def purity_scorer(target, y_pred):
     contingency_matrix = metrics.cluster.contingency_matrix(target, y_pred)
     score = np.sum(np.amax(contingency_matrix, axis=0)) / np.sum(contingency_matrix)
+    return score
 
 def silhouette_scorer(estimator, X):
     labels = estimator.fit_predict(X)
@@ -507,7 +512,7 @@ def setCombination(scaler_list, cf_list = [], cl_list = []):
     for i in cl_list:
         if (i == 1):
             cl_models["kmeans"] = kmeans
-            cl_params["kmeans"] = {"n_clusters": [x for x in range(3, 5)],
+            cl_params["kmeans"] = {"n_clusters": [10, 100, 300],
                                    "n_init": [10, 20, 30, 40],
                                    "algorithm": ['auto', 'full', 'elkan']}
         elif (i == 2):
@@ -529,8 +534,8 @@ def setCombination(scaler_list, cf_list = [], cl_list = []):
 if __name__ == "__main__":
     # Read data
     dir = os.path.dirname(os.path.realpath(__file__)).replace('\\', '/') + '/'
-    train = pd.read_csv(dir+"train2.csv")
-    test = pd.read_csv(dir+"test2.csv")
+    train = pd.read_csv(dir+"train.csv")
+    test = pd.read_csv(dir+"test.csv")
 
     # Handle Missing value
     train = findMissingValue(train)
